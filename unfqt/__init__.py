@@ -1,1 +1,4 @@
-__version__ = '0.1.0'
+""" TODO: write brief description of this module """
+from .version import __version__
+from .custom_indicators import *
+

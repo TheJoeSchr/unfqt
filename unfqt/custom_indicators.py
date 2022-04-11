@@ -2,6 +2,8 @@
 Solipsis Custom Indicators and Maths
 Some indicators are direct copies from freqtrade/technical but I did not want to rely on that repository
 to be stable and I needed to make some fixes/changes to fibonacci retracements and PMAX to suit my needs.
+
+extended by @TheJoeSchr 
 """
 from typing import List, Union
 from pandas import Series
@@ -455,10 +457,8 @@ def bollinger_bands(stock_price, window_size, num_of_std):
 
 
 """
-Market Cipher, from @Drafy in Freqtrade discord
+Market Cipher, from @drafty in Freqtrade discord
 """
-
-
 def market_cipher(self, dataframe) -> DataFrame:
     #dataframe['volume_rolling'] = dataframe['volume'].shift(14).rolling(14).mean()
     #
