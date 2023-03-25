@@ -31,6 +31,8 @@ def pivotlow(s: Series, left=1, right=1):
 
 def pivothigh(s: Series, left=1, right=1):
     return pivot(s, np.greater, left, right)
+
+
 def repeat_condition(self, series: pandas.Series, length: int):
     '''
     HOWTO:
@@ -45,6 +47,7 @@ def repeat_condition(self, series: pandas.Series, length: int):
     for i in range(length):
         conditions.append(series.shift(i))
     return functools.reduce(lambda a, b: a & b, conditions)
+
 
 def line2arr(line, size=-1):
     '''
@@ -94,6 +97,7 @@ def barssince(condition: Sequence[bool], default=np.inf) -> int:
     """
     return next(compress(range(len(condition)), reversed(condition)), default)
 
+
 def barssince_while(condition, occurrence=0):
     '''
     Impl of barssince
@@ -120,11 +124,14 @@ def barssince_while(condition, occurrence=0):
 
 
 def valuewhen(condition, source, occurrence=0):
+    # TODO: check if this is correct
+    # should probably be .shift(-occurrence)
     return source \
         .reindex(condition[condition].index) \
-        .shift(occurrence) \
+        .shift(-occurrence) \
         .reindex(source.index) \
         .ffill()
+
 
 def valuewhen_iter(condition, source, occurrence=0):
     '''
@@ -139,6 +146,7 @@ def valuewhen_iter(condition, source, occurrence=0):
     if since is not None:
         res = source[-(since+1)]
     return res
+
 
 def calc_streaks(series: pd.Series):
 
@@ -162,7 +170,6 @@ def calc_streaks(series: pd.Series):
                            0 else -1)  # decrease or reset to -1
 
     return streaks
-
 
 
 def cross_up(a: Series, b: Union[Series, int, float]):
@@ -230,7 +237,8 @@ def value_when(condition, source, occurrence):
 
 def heikin_ashi(dataframe: DataFrame):
     hk = DataFrame()
-    hk['close'] = (dataframe['open'] + dataframe['close'] + dataframe['high'] + dataframe['low']) / 4
+    hk['close'] = (dataframe['open'] + dataframe['close'] +
+                   dataframe['high'] + dataframe['low']) / 4
     hk['open'] = (dataframe['open'].shift(1) + dataframe['close'].shift(1)) / 2
     hk['low'] = dataframe['low']
     hk['low'] = hk[['low', 'open', 'close']].min(axis=1)
@@ -243,7 +251,8 @@ def ssl(high, low, close, length=10):
     df = DataFrame()
     df['sma_high'] = ta.sma(high, length=length)
     df['sma_low'] = ta.sma(low, length=length)
-    df['hlv'] = np.where(close > df['sma_high'], 1, np.where(close < df['sma_low'], -1, np.NAN))
+    df['hlv'] = np.where(close > df['sma_high'], 1,
+                         np.where(close < df['sma_low'], -1, np.NAN))
     df['hlv'] = df['hlv'].ffill()
     df['ssl_down'] = np.where(df['hlv'] < 0, df['sma_high'], df['sma_low'])
     df['ssl_up'] = np.where(df['hlv'] < 0, df['sma_low'], df['sma_high'])
@@ -258,9 +267,11 @@ def bov(df: DataFrame):
     """
     v: Series = df['volume']
     power = ta.bop(df['open'], df['high'], df['low'], df['close'])
-    power = 0.5 + power / 2         # bop range is [-1, +1], convert it to [0, +1]
+    # bop range is [-1, +1], convert it to [0, +1]
+    power = 0.5 + power / 2
     vol_up = v * power              # volume in the direction of the candle
-    vol_dn = v * (1 - power)        # volume against the direction of the candle
+    # volume against the direction of the candle
+    vol_dn = v * (1 - power)
     return vol_up, vol_dn
 
 
@@ -282,8 +293,10 @@ def vres(df: DataFrame):
     v = df['volume']
     h = df['high'] - df['low']
     power = ta.bop(df['open'], df['high'], df['low'], df['close'])
-    power = 0.5 + power / 2                                         # bop range is [-1, +1], convert it to [0, +1], < 0.5 - sellers in control, > 0.5 - buyers in control
-    power = np.where(df['open'] < df['close'], 1 - power, power)    # Convert power to % of control in direction of the candle.
+    # bop range is [-1, +1], convert it to [0, +1], < 0.5 - sellers in control, > 0.5 - buyers in control
+    power = 0.5 + power / 2
+    # Convert power to % of control in direction of the candle.
+    power = np.where(df['open'] < df['close'], 1 - power, power)
     return v * power / h
 
 

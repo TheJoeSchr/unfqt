@@ -12,34 +12,15 @@ import talib.abstract as ta
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 
 from pandas import DataFrame, Series
-from detecta import detect_peaks
-from user_data.strategies.strat_utils import valuewhen
 from pandas_ta.utils import get_drift, get_offset, verify_series, zero
 from pandas_ta.volatility import atr
 from pandas_ta.overlap import ma
 # from pandas_ta import adx
 
 
-def williams_fractal(dataframe):
-    """
-    DANGEROUS: needs to be used with .shift(2) because of lookahead bias
-    add 'fractals_high' and 'fractals_low' to dataframe
-    """
-    dataframe.loc[(dataframe['high'] > dataframe['high'].shift(1)) &
-                  (dataframe['high'] > dataframe['high'].shift(2)) &
-                  (dataframe['high'] > dataframe['high'].shift(-1)) &
-                  (dataframe['high'] > dataframe['high'].shift(-2)),
-                  'fractal_high'
-                  ] = 1
-    dataframe.loc[((dataframe['low'] < dataframe['low'].shift(1)) &
-                   (dataframe['low'] < dataframe['low'].shift(2)) &
-                   (dataframe['low'] < dataframe['low'].shift(-1)) &
-                   (dataframe['low'] < dataframe['low'].shift(-2))),
-                  'fractal_low'] = 1
-    return dataframe
-
-
-def find_higher_tf_divergences(dataframe, lower_tf_postfix='_btc_5m', higher_tf_postfix='_btc_1h'):
+def find_higher_tf_divergences(dataframe,
+                               lower_tf_postfix='_btc_5m',
+                               higher_tf_postfix='_btc_1h'):
     dataframe['low_peaks'+lower_tf_postfix] = np.NaN
     dataframe['high_peaks'+lower_tf_postfix] = np.NaN
     dataframe.loc[dataframe.index.isin(detect_peaks(
@@ -71,60 +52,28 @@ def find_higher_tf_divergences(dataframe, lower_tf_postfix='_btc_5m', higher_tf_
         dataframe['found_divergence_regular'+lower_tf_postfix].shift() == 1), 'found_divergence_marker'+lower_tf_postfix] = dataframe['low'+lower_tf_postfix]
 
     # makes rolling().sum() easier than with NaN
-    dataframe['found_divergence_marker'+lower_tf_postfix].fillna(0, inplace=True)
+    dataframe['found_divergence_marker' +
+              lower_tf_postfix].fillna(0, inplace=True)
     return dataframe
 
 
-def find_divergence(is_low_peak, price, osc, lookback=1):
-
-    # bullish regular divergence (price LL vs osc HL)
-    osc_higher_low = osc > valuewhen(is_low_peak, osc, lookback)
-    price_lower_low = price < valuewhen(is_low_peak, price, lookback)
-
-    found_regular_divergence_mask = osc_higher_low & price_lower_low & is_low_peak
-
-    # hidden divergence (price HL vs osc LL)
-    osc_lower_low = osc < valuewhen(is_low_peak, osc, lookback)
-    price_higher_low = price > valuewhen(is_low_peak, price, lookback)
-
-    found_hidden_divergence_mask = osc_lower_low & price_higher_low & is_low_peak
-
-    # [:-1]: is needed, because is_low_peak is using duplicated last candle for detect_peaks
-    # TODO: refactor `[:-1]` to level above, so that logic isn't split.
-    regular = np.where(found_regular_divergence_mask[:-1], 1, np.NaN)
-    hidden = np.where(found_hidden_divergence_mask[:-1], 1, np.NaN)
-    return regular, hidden
-
-
-def find_bullish_div(dataframe, price_label='low', osc_label='rsi', label_regular="bullish_regular_divergence", label_hidden="bullish_hidden_divergence", lookback=1):
-    dataframe = dataframe.copy()
-    regular = Series(data=None, index=dataframe.index, dtype=np.float64)
-    hidden = Series(data=None, index=dataframe.index, dtype=np.float64)
-    # we need to duplicate last entries of series
-    # to enable detect_peak to work with last candle
-    price = Series([*dataframe[price_label], dataframe[price_label].iat[-1]])
-    osc = Series([*dataframe[osc_label], dataframe[osc_label].iat[-1]])
-    # find peaks and re-append index
-    is_low_peak = price.iloc[detect_peaks(price, valley=True, show=False)] != np.NaN
-
-    for lookback_i in range(0, lookback+1):
-        reg, hid = find_divergence(is_low_peak, price, osc, lookback_i)
-        regular = Series(regular).combine_first(Series(reg))
-        hidden = Series(hidden).combine_first(Series(hid))
-
-    dataframe[label_regular] = regular
-    dataframe[label_hidden] = hidden
-    return regular, hidden, dataframe
-
-
-def combine_bullish_divergences(dataframe, price_label: str = 'low', oscillators: List[str] = ['rsi'], lookback: int = 1):
-    regular = Series(data=0, index=dataframe.index, dtype=np.float64)
-    hidden = Series(data=0, index=dataframe.index, dtype=np.float64)
-    for osc in oscillators:
-        reg, hid, _ = find_bullish_div(dataframe, price_label, osc, lookback)
-        regular = regular + reg.fillna(0)
-        hidden = hidden + hid.fillna(0)
-    return regular, hidden
+def williams_fractal(dataframe):
+    """
+    DANGEROUS: needs to be used with .shift(2) because of lookahead bias
+    add 'fractals_high' and 'fractals_low' to dataframe
+    """
+    dataframe.loc[(dataframe['high'] > dataframe['high'].shift(1)) &
+                  (dataframe['high'] > dataframe['high'].shift(2)) &
+                  (dataframe['high'] > dataframe['high'].shift(-1)) &
+                  (dataframe['high'] > dataframe['high'].shift(-2)),
+                  'fractal_high'
+                  ] = 1
+    dataframe.loc[((dataframe['low'] < dataframe['low'].shift(1)) &
+                   (dataframe['low'] < dataframe['low'].shift(2)) &
+                   (dataframe['low'] < dataframe['low'].shift(-1)) &
+                   (dataframe['low'] < dataframe['low'].shift(-2))),
+                  'fractal_low'] = 1
+    return dataframe
 
 
 """
@@ -166,7 +115,8 @@ def fib_ret(df, lookback=72, field='close') -> DataFrame:
     window_min = df[field].rolling(lookback).min()
     window_max = df[field].rolling(lookback).max()
     # I have no idea what this is for, maaybe graphing or jupyter?
-    fib_levels = [window_min + t * (window_max - window_min) for t in thresholds]
+    fib_levels = [window_min + t * (window_max - window_min)
+                  for t in thresholds]
 
     data = (df[field] - window_min) / (window_max - window_min)
 
@@ -189,7 +139,8 @@ def RMI(dataframe, *, length=20, mom=5):
     df["emaInc"] = ta.EMA(df, price='maxup', timeperiod=length)
     df["emaDec"] = ta.EMA(df, price='maxdown', timeperiod=length)
 
-    df['RMI'] = np.where(df['emaDec'] == 0, 0, 100 - 100 / (1 + df["emaInc"] / df["emaDec"]))
+    df['RMI'] = np.where(df['emaDec'] == 0, 0, 100 - 100 /
+                         (1 + df["emaInc"] / df["emaDec"]))
 
     return df["RMI"]
 
@@ -328,9 +279,11 @@ def PMAX(dataframe, period=10, multiplier=3, length=12, MAtype=1, src=1):
                 and df[mavalue].iat[i] < df['final_lb'].iat[i]) else 0.00)
 
     # Mark the trend direction up/down
-    df[pmx] = np.where((df[pm] > 0.00), np.where((df[mavalue] < df[pm]), 'down', 'up'), np.NaN)
+    df[pmx] = np.where((df[pm] > 0.00), np.where(
+        (df[mavalue] < df[pm]), 'down', 'up'), np.NaN)
     # Remove basic and final bands from the columns
-    df.drop(['basic_ub', 'basic_lb', 'final_ub', 'final_lb'], inplace=True, axis=1)
+    df.drop(['basic_ub', 'basic_lb', 'final_ub',
+            'final_lb'], inplace=True, axis=1)
 
     df.fillna(0, inplace=True)
 
@@ -399,7 +352,8 @@ def pcc(dataframe: DataFrame, period: int = 20, mult: int = 2):
 
     df['previous_close'] = df['close'].shift()
 
-    df['close_change'] = (df['close'] - df['previous_close']) / df['previous_close'] * 100
+    df['close_change'] = (df['close'] - df['previous_close']
+                          ) / df['previous_close'] * 100
     df['high_change'] = (df['high'] - df['close']) / df['close'] * 100
     df['low_change'] = (df['low'] - df['close']) / df['close'] * 100
 
@@ -459,21 +413,28 @@ def bollinger_bands(stock_price, window_size, num_of_std):
 """
 Market Cipher, from @drafty in Freqtrade discord
 """
+
+
 def market_cipher(self, dataframe) -> DataFrame:
     #dataframe['volume_rolling'] = dataframe['volume'].shift(14).rolling(14).mean()
     #
-    dataframe['ap'] = (dataframe['high'] + dataframe['low'] + dataframe['close']) / 3
+    dataframe['ap'] = (dataframe['high'] +
+                       dataframe['low'] + dataframe['close']) / 3
     dataframe['esa'] = ta.EMA(dataframe['ap'], self.n1)
-    dataframe['d'] = ta.EMA((dataframe['ap'] - dataframe['esa']).abs(), self.n1)
-    dataframe['ci'] = (dataframe['ap'] - dataframe['esa']) / (0.015 * dataframe['d'])
+    dataframe['d'] = ta.EMA(
+        (dataframe['ap'] - dataframe['esa']).abs(), self.n1)
+    dataframe['ci'] = (dataframe['ap'] - dataframe['esa']) / \
+        (0.015 * dataframe['d'])
     dataframe['tci'] = ta.EMA(dataframe['ci'], self.n2)
 
     dataframe['wt1'] = dataframe['tci']
     dataframe['wt2'] = ta.SMA(dataframe['wt1'], 4)
     dataframe['wt1-wt2'] = dataframe['wt1'] - dataframe['wt2']
 
-    dataframe['crossed_above'] = qtpylib.crossed_above(dataframe['wt2'], dataframe['wt1'])
-    dataframe['crossed_below'] = qtpylib.crossed_below(dataframe['wt2'], dataframe['wt1'])
+    dataframe['crossed_above'] = qtpylib.crossed_above(
+        dataframe['wt2'], dataframe['wt1'])
+    dataframe['crossed_below'] = qtpylib.crossed_below(
+        dataframe['wt2'], dataframe['wt1'])
     #dataframe['slope_gd'] = ta.LINEARREG_ANGLE(dataframe['crossed_above'] * dataframe['wt2'], 10)
 
     return dataframe
