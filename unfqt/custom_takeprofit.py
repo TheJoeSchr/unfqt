@@ -14,7 +14,7 @@ import pandas_ta as pta  # used as dataframe.ta
 from pandas import DataFrame
 from typing import Dict, List, Optional, Tuple, Union
 
-from user_data.strategies.helper_mixin import HelperMixin
+from unfqt.helper_mixin import HelperMixin
 
 # --------------------------------
 # Import Strategy from different file
@@ -22,6 +22,7 @@ from user_data.strategies.helper_mixin import HelperMixin
 
 class CustomTakeprofitMixin(HelperMixin):
     custom_stoploss_config = {}
+
     def __init__(self, config: dict) -> None:
         super().__init__(config)
 
@@ -45,7 +46,6 @@ class CustomTakeprofitMixin(HelperMixin):
         if stoploss_price >= current_rate:
             return 1
         return (stoploss_price / current_rate) - 1
-
 
 
 class WaitForTakeProfitStoploss(CustomTakeprofitMixin):
@@ -79,7 +79,8 @@ class WaitForTakeProfitStoploss(CustomTakeprofitMixin):
         super().__init__(config)
 
 
-FORCE_SELL = 0.0000001  # set as close as possible to current price to trigger emergency sell on exchange
+# set as close as possible to current price to trigger emergency sell on exchange
+FORCE_SELL = 0.0000001
 DO_NOTHING = 1  # no new stoploss gets set
 
 
@@ -88,7 +89,8 @@ class LockSellUntilTakeprofitMixin(WaitForTakeProfitStoploss):
 
     def custom_takeprofit(self, pair: str, trade: 'Trade', current_time: datetime, current_rate: float, current_profit: float, **kwargs) -> float:
         result = DO_NOTHING
-        current_candle = self.find_candle_datetime(current_time, trade.pair, now=current_time)
+        current_candle = self.find_candle_datetime(
+            current_time, trade.pair, now=current_time)
         if not current_candle.empty:
             should_sell = current_candle['sell'] > 0 if 'sell' in current_candle else False
             if(should_sell):
@@ -103,13 +105,15 @@ class SetTrailingStoplossMixin(LockSellUntilTakeprofitMixin):
     use_sell_signal = True
 
     def custom_takeprofit(self, pair: str, trade: 'Trade', current_time: datetime, current_rate: float, current_profit: float, **kwargs) -> float:
-        result = super().custom_takeprofit(pair, trade, current_time, current_rate, current_profit, **kwargs)
+        result = super().custom_takeprofit(pair, trade, current_time,
+                                           current_rate, current_profit, **kwargs)
 
         # check if we already got a sell signal
         if(abs(result) != DO_NOTHING):
             return result
 
-        current_candle = self.find_candle_datetime(current_time, trade.pair, now=current_time)
+        current_candle = self.find_candle_datetime(
+            current_time, trade.pair, now=current_time)
         if not current_candle.empty:
             # calculate current trailing stoploss
             if 'trailing_stoploss_rate' in current_candle:
@@ -126,10 +130,12 @@ class SetBreakEvenWhenTrailingStoplossIsNotSet(SetTrailingStoplossMixin):
     use_sell_signal = True
 
     def custom_takeprofit(self, pair: str, trade: 'Trade', current_time: datetime, current_rate: float, current_profit: float, **kwargs) -> float:
-        result = super().custom_takeprofit(pair, trade, current_time, current_rate, current_profit, **kwargs)
+        result = super().custom_takeprofit(pair, trade, current_time,
+                                           current_rate, current_profit, **kwargs)
 
         break_even_pct = (trade.fee_open + trade.fee_close)
-        stoploss_break_even = self.stoploss_from_open(break_even_pct, current_profit)
+        stoploss_break_even = self.stoploss_from_open(
+            break_even_pct, current_profit)
         # break_even maybe still to big if takeprofit is very tiny
         # at this point return 0 would not set a new stoploss
         if(stoploss_break_even == 0):
@@ -180,7 +186,8 @@ class TrailingByInversedPSARMixin(CustomTakeprofitMixin):
         if 'psar' not in dataframe.columns:
             dataframe['psar'] = ta.SAR(dataframe)
 
-        dataframe['psar_inverse'] = dataframe.psar.where(~(dataframe['high'] < dataframe['psar']) & ( dataframe.psar.shift() < dataframe.low.shift()), dataframe.psar.shift()-(dataframe.psar-dataframe.psar.shift()))
+        dataframe['psar_inverse'] = dataframe.psar.where(~(dataframe['high'] < dataframe['psar']) & (
+            dataframe.psar.shift() < dataframe.low.shift()), dataframe.psar.shift()-(dataframe.psar-dataframe.psar.shift()))
         dataframe['min'] = dataframe['low'].rolling(
             self.custom_stoploss_config['min_rollback']).min()
         dataframe['atr'] = dataframe.ta.atr()
@@ -190,8 +197,10 @@ class TrailingByInversedPSARMixin(CustomTakeprofitMixin):
                                      dataframe.low, atr_trail, inplace=True)
         dataframe.psar_inverse.ffill(inplace=True)
         dataframe['trailing_stoploss_rate'] = dataframe['psar_inverse']
-        dataframe['stoploss_rate'] = dataframe['min']-(dataframe['psar_inverse'])
-        dataframe['takeprofit_rate'] = ((dataframe['close']-dataframe['stoploss_rate'])*self.custom_stoploss_config['risk_reward_ratio'])+dataframe['close']
+        dataframe['stoploss_rate'] = dataframe['min'] - \
+            (dataframe['psar_inverse'])
+        dataframe['takeprofit_rate'] = ((dataframe['close']-dataframe['stoploss_rate'])
+                                        * self.custom_stoploss_config['risk_reward_ratio'])+dataframe['close']
         return dataframe
 
     def __init__(self, config: dict) -> None:
