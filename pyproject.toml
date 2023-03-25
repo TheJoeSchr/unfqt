@@ -7,6 +7,8 @@ authors = ["Joe Schr <joe.vandelay@gmail.com>"]
 [tool.poetry.dependencies]
 python = "^3.10"
 detecta = "^0.0.5"
+numpy = "^1.24.2"
+pandas = "^1.5.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
