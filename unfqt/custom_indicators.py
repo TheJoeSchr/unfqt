@@ -7,6 +7,7 @@ extended by @TheJoeSchr
 """
 from typing import List, Union
 from pandas import Series
+import pandas as pd
 import numpy as np
 import talib.abstract as ta
 import freqtrade.vendor.qtpylib.indicators as qtpylib
@@ -55,6 +56,33 @@ def find_higher_tf_divergences(dataframe,
     dataframe['found_divergence_marker' +
               lower_tf_postfix].fillna(0, inplace=True)
     return dataframe
+
+
+def vwap_fast(dataframe: DataFrame):
+    """
+    by @rk
+    """
+    split_indices = list(dataframe.loc[
+        (
+            (dataframe['date'].dt.second == 0)
+            &
+            (dataframe['date'].dt.minute == 0)
+            &
+            (dataframe['date'].dt.hour == 0)
+        )].index)
+    split_indices.insert(0, 0)
+    split_indices.append(len(dataframe))
+    vwap_slices = []
+    for i in range(1, len(split_indices)):
+        start_idx = split_indices[i - 1]
+        end_idx = split_indices[i]
+        slice = dataframe[start_idx:end_idx]
+        hlc3 = (slice['high'] + slice['low'] + slice['close']) / 3
+        wp = hlc3 * slice['volume']
+        vwap = wp.cumsum() / slice['volume'].cumsum()
+        vwap_slices.append(vwap)
+    vwap = pd.concat(vwap_slices)
+    return vwap
 
 
 def williams_fractal(dataframe):
