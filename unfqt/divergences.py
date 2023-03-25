@@ -5,10 +5,10 @@ from unfqt.strat_utils import valuewhen
 from detecta import detect_peaks
 
 
-def find_divergence(is_low_peak: Series,
-                    price: Series,
-                    osc: Series,
-                    lookback: int = 1):
+def find_bullish_divergences_at_low_peaks(is_low_peak: Series,
+                                          price: Series,
+                                          osc: Series,
+                                          lookback: int = 1):
 
     # bullish regular divergence (price LL vs osc HL)
     osc_higher_low = osc > valuewhen(is_low_peak, osc, lookback)
@@ -32,13 +32,14 @@ def find_divergence(is_low_peak: Series,
     return regular, hidden
 
 
-def find_bullish_div(dataframe,
-                     price_label='low',
-                     osc_label='rsi',
-                     *,
-                     label_regular="bullish_regular_divergence",
-                     label_hidden="bullish_hidden_divergence",
-                     lookback: int = 1):
+def detect_bullish_divergences_with_lookback(
+        dataframe,
+        price_label='low',
+        osc_label='rsi',
+        *,
+        label_regular="bullish_regular_divergence",
+        label_hidden="bullish_hidden_divergence",
+        lookback: int = 1):
     dataframe = dataframe.copy()
     regular = Series(data=None, index=dataframe.index, dtype=np.float64)
     hidden = Series(data=None, index=dataframe.index, dtype=np.float64)
@@ -51,7 +52,10 @@ def find_bullish_div(dataframe,
         price, valley=True, show=False)] != np.NaN
 
     for lookback_i in range(0, lookback+1):
-        reg, hid = find_divergence(is_low_peak, price, osc, lookback_i)
+        reg, hid = find_bullish_divergences_at_low_peaks(is_low_peak,
+                                                         price,
+                                                         osc,
+                                                         lookback_i)
         regular = Series(regular).combine_first(Series(reg))
         hidden = Series(hidden).combine_first(Series(hid))
 
@@ -67,7 +71,11 @@ def combine_bullish_divergences(dataframe,
     regular = Series(data=0, index=dataframe.index, dtype=np.float64)
     hidden = Series(data=0, index=dataframe.index, dtype=np.float64)
     for osc in oscillators:
-        reg, hid, _ = find_bullish_div(
+        reg, hid, _ = detect_bullish_divergences_with_lookback(
+            dataframe, price_label, osc, lookback=lookback)
+        regular = regular + reg.fillna(0)
+        hidden = hidden + hid.fillna(0)
+    return regular, hidden
             dataframe, price_label, osc, lookback=lookback)
         regular = regular + reg.fillna(0)
         hidden = hidden + hid.fillna(0)
