@@ -128,7 +128,7 @@ def valuewhen(condition, source, occurrence=0):
     # should probably be .shift(-occurrence)
     return source \
         .reindex(condition[condition].index) \
-        .shift(-occurrence) \
+        .shift(occurrence) \
         .reindex(source.index) \
         .ffill()
 
