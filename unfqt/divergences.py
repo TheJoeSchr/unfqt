@@ -24,6 +24,7 @@ def find_bullish_divergences_at_low_peaks(is_low_peak: Series,
     found_hidden_divergence_mask = osc_lower_low & \
         price_higher_low & is_low_peak
 
+    # replace True with 1.0 and False with NaN
     # [:-1]: is needed, because is_low_peak is
     # using duplicated last candle for detect_peaks
     # TODO: refactor `[:-1]` to level above, so that logic isn't split.
@@ -49,9 +50,9 @@ def detect_bullish_divergences_with_lookback(
     osc = Series([*dataframe[osc_label], dataframe[osc_label].iat[-1]])
     # find peaks and re-append index
     is_low_peak = price.iloc[detect_peaks(
-        price, valley=True, show=False)] != np.NaN
+        price, valley=True, show=False, mpd=2, threshold=1)] != np.NaN
 
-    for lookback_i in range(0, lookback+1):
+    for lookback_i in range(0, lookback + 1):
         reg, hid = find_bullish_divergences_at_low_peaks(is_low_peak,
                                                          price,
                                                          osc,
@@ -123,9 +124,9 @@ def detect_bearish_divergences_with_lookback(
     osc = Series([*dataframe[osc_label], dataframe[osc_label].iat[-1]])
     # find peaks and re-append index
     is_high_peak = price.iloc[detect_peaks(
-        price, valley=False, show=False)] != np.NaN
+        price, valley=False, show=False, mpd=2, threshold=1)] != np.NaN
 
-    for lookback_i in range(0, lookback+1):
+    for lookback_i in range(0, lookback + 1):
         reg, hid = find_bearish_divergences_at_low_peaks(is_high_peak,
                                                          price,
                                                          osc,
