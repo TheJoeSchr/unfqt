@@ -124,8 +124,7 @@ def barssince_while(condition, occurrence=0):
 
 
 def valuewhen(condition, source, occurrence=0):
-    # TODO: check if this is correct
-    # should probably be .shift(-occurrence)
+    # NOTE: checked, not .shift(-occurrence) is correct
     return source \
         .reindex(condition[condition].index) \
         .shift(occurrence) \
