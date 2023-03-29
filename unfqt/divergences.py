@@ -12,7 +12,7 @@ def find_bullish_divergences_at_low_peaks(is_low_peak: Series,
 
     # bullish regular divergence (price LL vs osc HL)
     osc_higher_low = osc > valuewhen(is_low_peak, osc, lookback)
-    price_lower_low = price < valuewhen(is_low_peak, price, lookback)
+    price_lower_low = price <= valuewhen(is_low_peak, price, lookback)
 
     found_regular_divergence_mask = osc_higher_low & \
         price_lower_low & is_low_peak
@@ -86,7 +86,7 @@ def find_bearish_divergences_at_low_peaks(is_high_peak: Series,
 
     # bearish regular divergence (price LL vs osc HL)
     osc_lower_high = osc < valuewhen(is_high_peak, osc, lookback)
-    price_higher_high = price > valuewhen(is_high_peak, price, lookback)
+    price_higher_high = price >= valuewhen(is_high_peak, price, lookback)
 
     found_regular_divergence_mask = osc_lower_high & \
         price_higher_high & is_high_peak
@@ -148,6 +148,8 @@ def combine_bearish_divergences(dataframe,
     for osc in oscillators:
         reg, hid, _ = detect_bearish_divergences_with_lookback(
             dataframe, price_label, osc, lookback=lookback)
-        regular = regular + reg.fillna(0)
-        hidden = hidden + hid.fillna(0)
+        # regular = regular + reg.fillna(0)
+        regular = regular.add(reg.head(len(regular)).fillna(0).values)
+        # hidden = hidden + hid.fillna(0)
+        hidden = hidden.add(hid.head(len(hidden)).fillna(0).values)
     return regular, hidden

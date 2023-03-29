@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "unfqt"
-version = "0.1.0"
+version = "0.2.0"
 description = ""
 authors = ["Joe Schr <joe.vandelay@gmail.com>"]
 
