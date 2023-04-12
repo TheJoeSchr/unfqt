@@ -19,7 +19,7 @@ def find_bullish_divergences_at_low_peaks(is_low_peak: Series,
 
     # hidden divergence (price HL vs osc LL)
     osc_lower_low = osc < valuewhen(is_low_peak, osc, lookback)
-    price_higher_low = price > valuewhen(is_low_peak, price, lookback)
+    price_higher_low = price >= valuewhen(is_low_peak, price, lookback)
 
     found_hidden_divergence_mask = osc_lower_low & \
         price_higher_low & is_low_peak
@@ -93,7 +93,7 @@ def find_bearish_divergences_at_low_peaks(is_high_peak: Series,
 
     # hidden divergence (price HL vs osc LL)
     osc_higher_high = osc > valuewhen(is_high_peak, osc, lookback)
-    price_lower_high = price < valuewhen(is_high_peak, price, lookback)
+    price_lower_high = price <= valuewhen(is_high_peak, price, lookback)
 
     found_hidden_divergence_mask = osc_higher_high & \
         price_lower_high & is_high_peak
