@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "unfqt"
-version = "0.2.0"
+version = "0.2.2"
 description = ""
 authors = ["Joe Schr <joe.vandelay@gmail.com>"]
 
@@ -9,6 +9,7 @@ python = "^3.10"
 detecta = "^0.0.5"
 numpy = "^1.24.2"
 pandas = "^1.5.3"
+psutil = "^5.9.4"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

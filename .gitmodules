@@ -1,0 +1,3 @@
+[submodule "unfqt/TechnicalAnalysisAutomation"]
+	path = unfqt/TechnicalAnalysisAutomation
+	url = https://github.com/TheJoeSchr/TechnicalAnalysisAutomation.git
