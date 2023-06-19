@@ -7,25 +7,43 @@ from freqtrade.persistence import Trade
 
 from functools import wraps
 
-# anti-future bias wrapper
-def analyze_df_in_batches(f, window=500):
+
+def analyze_df_in_rolling_window(f, window=10):
+    """
+    anti-future bias wrapper
+    fixed version of analyze_df_in_batches
+    """
     @wraps(f)
-    def wrapper(df, *args, **kwargs):
+    def wrapper(_strat, df, metadata, *args, **kwargs):
+        # self = args[0]
+        # df = args[1]
         lines = []
         for i in range(len(df) - window):
-            slice = df[i : i + window]
-            res = f(slice, *args, **kwargs)
+            slice = df[i:i + window]
+            res = f(_strat, slice, metadata, *args[3:], **kwargs)
             lines.append(res.iloc[[-1]])
         return pd.concat(lines)
-
     return wrapper
+
+# def analyze_df_in_batches(f, window=10):
+#     @wraps(f)
+#     def wrapper(_strat, df, *args, **kwargs):
+#         lines = []
+#         for i in range(len(df) - window):
+#             slice = df[i: i + window]
+#             res = f(slice, *args, **kwargs)
+#             lines.append(res.iloc[[-1]])
+#         return pd.concat(lines)
+
+#     return wrapper
 
 
 def get_trade_opened_candle(self, trade: "Trade"):
     """
     search for nearest row of trade.open_date
     """
-    trade_candle = find_candle_near_datetime(self, trade.open_date_utc, pair=trade.pair)
+    trade_candle = find_candle_near_datetime(
+        self, trade.open_date_utc, pair=trade.pair)
     return trade_candle
 
 
@@ -35,7 +53,8 @@ def get_buy_signal_candle(self, trade: "Trade", timeframe="5m"):
     """
     buy_candle = find_candle_near_datetime(
         self,
-        trade.open_date_utc - timedelta(minutes=timeframe_to_minutes(self.timeframe)),
+        trade.open_date_utc -
+        timedelta(minutes=timeframe_to_minutes(self.timeframe)),
         pair=trade.pair,
     )
     return buy_candle

@@ -1,19 +1,29 @@
-[tool.poetry]
-name = "unfqt"
-version = "0.2.3"
-description = ""
-authors = ["Joe Schr <joe.vandelay@gmail.com>"]
-
-[tool.poetry.dependencies]
-python = "^3.10"
-detecta = "^0.0.5"
-numpy = "^1.24.2"
-pandas = "^1.5.3"
-psutil = "^5.9.4"
-
-[tool.poetry.dev-dependencies]
-pytest = "^5.2"
-
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "unfqt"
+version = "0.2.4"
+description = ""
+authors = [{name="Joe Schr",email="joe.vandelay@gmail.com"}]
+requires-python = ">=3.7"
+dependencies = [
+  "detecta",
+  "numpy",
+  "pandas",
+  "psutil",
+  "mplfinance",
+  "matplotlib"
+]
+
+[options]
+packages = ["unfqt"]
+install_requires = [
+  "detecta",
+  "numpy",
+  "pandas",
+  "psutil",
+  "mplfinance",
+  "matplotlib"
+]
